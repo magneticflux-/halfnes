@@ -11,7 +11,7 @@ import java.util.ArrayList;
 
 public class APU {
 
-    public int samplerate = 1;
+    public int samplerate;
     private final Timer[] timers = {new SquareTimer(8, 2), new SquareTimer(8, 2),
         new TriangleTimer(), new NoiseTimer()};
     private double cyclespersample;
@@ -23,7 +23,7 @@ public class APU {
     private int[] noiseperiod;
     // different for PAL
     private long accum = 0;
-    private final ArrayList<ExpansionSoundChip> expnSound = new ArrayList<ExpansionSoundChip>();
+    private final ArrayList<ExpansionSoundChip> expnSound = new ArrayList<>();
     private boolean soundFiltering;
     private final int[] tnd_lookup, square_lookup;
     private int framectrreload;
@@ -66,6 +66,7 @@ public class APU {
     private AudioOutInterface ai;
 
     public APU(final NES nes, final CPU cpu, final CPURAM cpuram) {
+        this.samplerate = 1; //just in case we can't init audio
         //fill square, triangle volume lookup tables
         square_lookup = new int[31];
         for (int i = 0; i < square_lookup.length; ++i) {
@@ -161,8 +162,7 @@ public class APU {
                 return 0x40; //open bus
         }
     }
-    //final private static int[] dutylookup = {1, 2, 4, 6};
-    final private static int[][] dutylookup = {
+    final private static int[][] DUTYLOOKUP = {
         {0, 1, 0, 0, 0, 0, 0, 0},
         {0, 1, 1, 0, 0, 0, 0, 0},
         {0, 1, 1, 1, 1, 0, 0, 0},
@@ -195,7 +195,7 @@ public class APU {
                 //length counter 1 halt
                 lenctrHalt[0] = ((data & (utils.BIT5)) != 0);
                 // pulse 1 duty cycle
-                timers[0].setduty(dutylookup[data >> 6]);
+                timers[0].setduty(DUTYLOOKUP[data >> 6]);
                 // and envelope
                 envConstVolume[0] = ((data & (utils.BIT4)) != 0);
                 envelopeValue[0] = data & 15;
@@ -232,7 +232,7 @@ public class APU {
                 //length counter 2 halt
                 lenctrHalt[1] = ((data & (utils.BIT5)) != 0);
                 // pulse 2 duty cycle
-                timers[1].setduty(dutylookup[data >> 6]);
+                timers[1].setduty(DUTYLOOKUP[data >> 6]);
                 // and envelope
                 envConstVolume[1] = ((data & (utils.BIT4)) != 0);
                 envelopeValue[1] = data & 15;
@@ -507,12 +507,10 @@ public class APU {
             setlength();
             setsweep();
         }
-        if (!apuintflag && (framectr == 3) && (ctrmode == 4)) {
-            if (!statusframeint) {
-                ++cpu.interrupt;
-                //System.err.println("frame interrupt set at " + cpu.cycles);
-                statusframeint = true;
-            }
+        if (!apuintflag && (framectr == 3) && (ctrmode == 4) && !statusframeint) {
+            ++cpu.interrupt;
+            //System.err.println("frame interrupt set at " + cpu.cycles);
+            statusframeint = true;
 
         }
         ++framectr;

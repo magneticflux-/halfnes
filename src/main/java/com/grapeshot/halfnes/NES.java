@@ -11,6 +11,7 @@ import com.grapeshot.halfnes.ui.ControllerInterface;
 import com.grapeshot.halfnes.ui.FrameLimiterImpl;
 import com.grapeshot.halfnes.ui.FrameLimiterInterface;
 import com.grapeshot.halfnes.ui.GUIInterface;
+import javafx.application.Platform;
 
 public class NES {
 
@@ -21,16 +22,16 @@ public class NES {
     private PPU ppu;
     private GUIInterface gui;
     private ControllerInterface controller1, controller2;
-    final public static String VERSION = "060";
+    final public static String VERSION = "062-dev";
     public boolean runEmulation = false;
     private boolean dontSleep = false;
+    private boolean shutdown = false;
     public long frameStartTime, framecount, frameDoneTime;
     private boolean frameLimiterOn = true;
     private String curRomPath, curRomName;
     private final FrameLimiterInterface limiter = new FrameLimiterImpl(this, 16639267);
     // Pro Action Replay device
     private ActionReplay actionReplay;
-
 
     public NES(GUIInterface gui) {
         if (gui != null) {
@@ -44,6 +45,10 @@ public class NES {
         return this.cpuram;
     }
 
+    public CPU getCPU() {
+        return this.cpu;
+    }
+
     public void run(final String romtoload) {
         Thread.currentThread().setPriority(Thread.NORM_PRIORITY + 1);
         //set thread priority higher than the interface thread
@@ -53,7 +58,7 @@ public class NES {
     }
 
     public void run() {
-        while (true) {
+        while (!shutdown) {
             if (runEmulation) {
                 frameStartTime = System.nanoTime();
                 actionReplay.applyPatches();
@@ -197,13 +202,16 @@ public class NES {
 
     public void quit() {
         //save SRAM and quit
-        if (cpu != null && curRomPath != null) {
+        //should wait for any save sram workers to be done before here
+       if (cpu != null && curRomPath != null) {
             runEmulation = false;
             saveSRAM(false);
         }
         //there might be some subtle threading bug with saving?
-        //System.Exit is very dirty but werks
-        System.exit(0);
+        //System.Exit is very dirty and does NOT let the delete on exit handler
+        //fire so the natives stick around...
+        shutdown = true;
+        Platform.exit();
     }
 
     public synchronized void reset() {

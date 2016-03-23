@@ -5,8 +5,11 @@
 package com.grapeshot.halfnes;
 
 import java.io.File;
+import java.io.FileOutputStream;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.io.OutputStreamWriter;
+import java.nio.charset.StandardCharsets;
 
 public final class CPU {
 
@@ -22,8 +25,8 @@ public final class CPU {
     private int pb = 0;// set to 1 if access crosses page boundary
     public int interrupt = 0;
     public boolean nmiNext = false, idle = false;
-    private static boolean decimalModeEnable = false,
-            idleLoopSkip = false;
+    private final static boolean decimalModeEnable = false,
+            idleLoopSkip = true;
     //NES 6502 is missing decimal mode, but most other 6502s have it
     private boolean interruptDelay = false;
     private static String[] opcodes = opcodes();
@@ -41,7 +44,7 @@ public final class CPU {
 
         ONCARRY, ALWAYS; //type of dummy read
     }
-    FileWriter w; //debug log writer
+    OutputStreamWriter w; //debug log writer
 
     public CPU(final CPURAM cpuram) {
         ram = cpuram;
@@ -54,7 +57,16 @@ public final class CPU {
     public void startLog() {
         logging = true;
         try {
-            w = new FileWriter(new File("nesdebug.txt"));
+            w = new OutputStreamWriter(new FileOutputStream(new File("nesdebug.txt")), StandardCharsets.UTF_8); 
+        } catch (IOException e) {
+            System.err.println("Cannot create debug log" + e.getLocalizedMessage());
+        }
+    }
+
+    public void startLog(String path) {
+        logging = true;
+        try {
+            w = new OutputStreamWriter(new FileOutputStream(new File(path)), StandardCharsets.UTF_8); 
         } catch (IOException e) {
             System.err.println("Cannot create debug log" + e.getLocalizedMessage());
         }
@@ -1730,10 +1742,8 @@ public final class CPU {
             pb = 1;
         }
 
-        if ((addr & 0xFF00) != ((addr + reg) & 0xFF00)) {
-            if (dummy == dummy.ONCARRY) {
-                ram.read((addr & 0xFF00) | ((addr + reg) & 0xFF));
-            }
+        if ((addr & 0xFF00) != ((addr + reg) & 0xFF00) && dummy == dummy.ONCARRY) {
+            ram.read((addr & 0xFF00) | ((addr + reg) & 0xFF));
         }
         if (dummy == dummy.ALWAYS) {
             ram.read((addr & 0xFF00) | ((addr + reg) & 0xFF));
@@ -1747,7 +1757,7 @@ public final class CPU {
         final int readloc = abs();
         return ram.read(readloc)
                 + (ram.read(((readloc & 0xff) == 0xff) ? readloc - 0xff
-                                : readloc + 1) << 8);
+                        : readloc + 1) << 8);
         //if reading from the last byte in a page, high bit of address
         //is taken from first byte on the page, not first byte on NEXT page.
     }
@@ -1768,10 +1778,8 @@ public final class CPU {
             pb = 1;
         }
 
-        if ((addr & 0xFF00) != ((addr + Y) & 0xFF00)) {
-            if (dummy == dummy.ONCARRY) {
-                ram.read((addr & 0xFF00) | ((addr + Y) & 0xFF));
-            }
+        if ((addr & 0xFF00) != ((addr + Y) & 0xFF00) && dummy == dummy.ONCARRY) {
+            ram.read((addr & 0xFF00) | ((addr + Y) & 0xFF));
         }
         if (dummy == dummy.ALWAYS) {
             ram.read((addr & 0xFF00) | ((addr + Y) & 0xFF));
@@ -2035,6 +2043,7 @@ public final class CPU {
         op[0xD8] = "CLD";
         op[0xD9] = "CMP $%2$02X%1$02X,y";
         op[0xDA] = "NOP";
+        op[0xDB] = "DCP $%2$02X%1$02X,y"; //did i delete this line somehow?
         op[0xDC] = "NOP $%2$02X%1$02X,x";
         op[0xDD] = "CMP $%2$02X%1$02X,x";
         op[0xDE] = "DEC $%2$02X%1$02X,x";

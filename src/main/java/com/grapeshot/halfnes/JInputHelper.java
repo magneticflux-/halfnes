@@ -2,6 +2,7 @@ package com.grapeshot.halfnes;
 
 import java.io.*;
 import java.lang.reflect.Field;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.security.AccessController;
 import java.security.PrivilegedAction;
@@ -46,17 +47,17 @@ public enum JInputHelper {
     }
 
     private static void unpackNativeLibrary(File nativesDirectory, String nativeLibrary) throws IOException {
-        InputStream nativeLibraryInputStream = ClassLoader.getSystemResourceAsStream(nativeLibrary);
-        File nativeLibraryTempFile = new File(nativesDirectory, nativeLibrary);
-        nativeLibraryTempFile.deleteOnExit();
-        BufferedOutputStream nativeLibraryTempFileOutputStream = new BufferedOutputStream(new FileOutputStream(nativeLibraryTempFile));
-        byte[] buffer = new byte[4096];
-        int length;
-        while ((length = nativeLibraryInputStream.read(buffer)) > 0) {
-            nativeLibraryTempFileOutputStream.write(buffer, 0, length);
+        try (InputStream nativeLibraryInputStream = ClassLoader.getSystemResourceAsStream(nativeLibrary)) {
+            File nativeLibraryTempFile = new File(nativesDirectory, nativeLibrary);
+            nativeLibraryTempFile.deleteOnExit();
+            try (BufferedOutputStream nativeLibraryTempFileOutputStream = new BufferedOutputStream(new FileOutputStream(nativeLibraryTempFile))) {
+                byte[] buffer = new byte[4096];
+                int length;
+                while ((length = nativeLibraryInputStream.read(buffer)) > 0) {
+                    nativeLibraryTempFileOutputStream.write(buffer, 0, length);
+                }
+            }
         }
-        nativeLibraryTempFileOutputStream.close();
-        nativeLibraryInputStream.close();
     }
 
     private static File createTempDirectory() throws IOException {
@@ -96,7 +97,7 @@ public enum JInputHelper {
     private static boolean isWindows10() {
         try {
             Process process = Runtime.getRuntime().exec("cmd.exe /c ver");
-            BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(process.getInputStream()));
+            BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(process.getInputStream(), StandardCharsets.UTF_8));
             bufferedReader.readLine();
             String line = bufferedReader.readLine();
             process.waitFor();
