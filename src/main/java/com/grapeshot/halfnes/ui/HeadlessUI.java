@@ -12,12 +12,11 @@ import java.awt.image.BufferedImage;
  */
 public class HeadlessUI implements GUIInterface {
 
+    private final Renderer renderer;
+    private final boolean renderFrames;
+    private final PuppetController controller1, controller2;
     private NES nes;
-    private Renderer renderer;
-    private boolean renderFrames;
     private BufferedImage lastFrame = null;
-    private boolean updateImage;
-    private PuppetController controller1, controller2;
 
     public HeadlessUI(String romToLoad, boolean renderFrames) {
         nes = new NES(this);
