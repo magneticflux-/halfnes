@@ -3,21 +3,23 @@ package com.grapeshot.halfnes;
 import com.grapeshot.halfnes.ui.HeadlessUI;
 import com.grapeshot.halfnes.ui.PuppetController;
 
-import javax.swing.*;
-import java.awt.*;
+import javax.swing.JFrame;
+import javax.swing.WindowConstants;
+import java.awt.Graphics;
 import java.awt.image.BufferedImage;
 
 /**
  * @author Mitchell Skaggs
  */
 public class HeadlessNES {
-    
-    private HeadlessNES() {}
-    
+
     public static final int scale = 4;
+
+    private HeadlessNES() {
+    }
+
     public static void main(String[] args) {
-        BufferedImage bufferedImage = new BufferedImage(100, 100, BufferedImage.TYPE_INT_ARGB_PRE);
-        HeadlessUI ui = new HeadlessUI("src/test/resources/nestest/nestest.nes", true);
+        HeadlessUI ui = new HeadlessUI(HeadlessNES.class.getClassLoader().getResource("nestest.nes"), true);
 
         for (int i = 0; i < 100; i++) {
             ui.runFrame();
@@ -25,7 +27,7 @@ public class HeadlessNES {
         ui.getController1().pressButton(PuppetController.Button.START);
         ui.runFrame();
         ui.getController1().releaseButton(PuppetController.Button.START);
-        for (int i = 0; i < 5; i++) {
+        for (int i = 0; i < 100; i++) {
             ui.runFrame();
         }
 

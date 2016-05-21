@@ -6,6 +6,7 @@ import com.grapeshot.halfnes.video.RGBRenderer;
 import com.grapeshot.halfnes.video.Renderer;
 
 import java.awt.image.BufferedImage;
+import java.net.URL;
 
 /**
  * @author Mitchell Skaggs
@@ -28,8 +29,22 @@ public class HeadlessUI implements GUIInterface {
         this.renderFrames = renderFrames;
     }
 
+    public HeadlessUI(URL fileURL, boolean renderFrames) {
+        nes = new NES(this);
+        this.loadROM(fileURL);
+        this.renderer = new RGBRenderer();
+        this.controller1 = new PuppetController();
+        this.controller2 = new PuppetController();
+        nes.setControllers(this.controller1, this.controller2);
+        this.renderFrames = renderFrames;
+    }
+
     public void loadROM(String romToLoad) {
         this.nes.loadROM(romToLoad);
+    }
+
+    public void loadROM(URL fileURL) {
+        this.nes.loadROM(fileURL);
     }
 
     public BufferedImage getLastFrame() {

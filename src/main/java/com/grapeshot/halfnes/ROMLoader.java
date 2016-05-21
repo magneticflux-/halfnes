@@ -7,11 +7,14 @@ package com.grapeshot.halfnes;
 import com.grapeshot.halfnes.mappers.BadMapperException;
 import com.grapeshot.halfnes.mappers.Mapper;
 
+import java.io.InputStream;
+
 public class ROMLoader {
     //this is the oldest code in the project... I'm honestly ashamed
     //at how it's structured but for now it works.
     //TODO: fix this up
 
+    private final int[] therom;
     //this SHOULD do just enough to figure out the file type
     //and the correct mapper for it, and no more.
     public String name;
@@ -24,11 +27,15 @@ public class ROMLoader {
     public int prgoff, chroff;
     public boolean savesram = false;
     public int[] header;
-    private final int[] therom;
 
     public ROMLoader(String filename) {
         therom = FileUtils.readfromfile(filename);
         name = filename;
+    }
+
+    public ROMLoader(InputStream inputStream) {
+        therom = FileUtils.readfromfile(inputStream);
+        name = "";
     }
 
     private void ReadHeader(int len) {

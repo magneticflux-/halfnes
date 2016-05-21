@@ -4,6 +4,8 @@
  */
 package com.grapeshot.halfnes;
 
+import org.apache.commons.io.IOUtils;
+
 import java.awt.EventQueue;
 import java.io.*;
 
@@ -12,7 +14,7 @@ import java.io.*;
  * @author Andrew
  */
 public class FileUtils {
-    
+
     private FileUtils() {}
 
     public static String getExtension(final File f) {
@@ -68,6 +70,56 @@ public class FileUtils {
         EventQueue.invokeLater(writer);
     }
 
+    public static String getFilenamefromPath(String path) {
+        return new File(path).getName();
+    }
+
+    public static int[] readfromfile(final String path) {
+        File f = new File(path);
+        byte[] bytes = new byte[(int) f.length()];
+        FileInputStream fis;
+        try {
+            fis = new FileInputStream(f);
+                fis.read(bytes);
+            } catch (IOException e) {
+                // TODO Auto-generated catch block
+                System.err.println("Failed to load file");
+            e.printStackTrace();
+            }
+        int[] ints = new int[bytes.length];
+
+        for (int i = 0;
+                i < bytes.length;
+                i++) {
+            ints[i] = (short) (bytes[i] & 0xFF);
+        }
+
+        return ints;
+    }
+
+    public static int[] readfromfile(final InputStream inputStream) {
+        try {
+            byte[] bytes = IOUtils.toByteArray(inputStream);
+
+            int[] ints = new int[bytes.length];
+
+            for (int i = 0;
+                 i < bytes.length;
+                 i++) {
+                ints[i] = (short) (bytes[i] & 0xFF);
+            }
+
+            return ints;
+        } catch (IOException e) {
+            throw new Error();
+        }
+    }
+
+    public static boolean exists(final String path) {
+        File f = new File(path);
+        return f.canRead() && !f.isDirectory();
+    }
+
     private static class AsyncWriter implements Runnable {
 
         private final int[] a;
@@ -96,37 +148,5 @@ public class FileUtils {
                 }
             }
         }
-    }
-
-    public static String getFilenamefromPath(String path) {
-        return new File(path).getName();
-    }
-
-    public static int[] readfromfile(final String path) {
-        File f = new File(path);
-        byte[] bytes = new byte[(int) f.length()];
-        FileInputStream fis;
-        try {
-            fis = new FileInputStream(f);
-                fis.read(bytes);
-            } catch (IOException e) {
-                // TODO Auto-generated catch block
-                System.err.println("Failed to load file");
-            e.printStackTrace();
-            }
-        int[] ints = new int[bytes.length];
-
-        for (int i = 0;
-                i < bytes.length;
-                i++) {
-            ints[i] = (short) (bytes[i] & 0xFF);
-        }
-
-        return ints;
-    }
-
-    public static boolean exists(final String path) {
-        File f = new File(path);
-        return f.canRead() && !f.isDirectory();
     }
 }

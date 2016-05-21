@@ -13,23 +13,31 @@ import com.grapeshot.halfnes.ui.FrameLimiterInterface;
 import com.grapeshot.halfnes.ui.GUIInterface;
 import javafx.application.Platform;
 
+import java.net.URL;
+
 public class NES {
 
+    final public static String VERSION = "062-dev";
+    private final FrameLimiterInterface limiter = new FrameLimiterImpl(this, 16639267);
+    public boolean runEmulation = false;
+    public long frameStartTime, framecount, frameDoneTime;
     private Mapper mapper;
     private APU apu;
     private CPU cpu;
     private CPURAM cpuram;
     private PPU ppu;
     private GUIInterface gui;
+    Runnable render = new Runnable() {
+        @Override
+        public void run() {
+            gui.render();
+        }
+    };
     private ControllerInterface controller1, controller2;
-    final public static String VERSION = "062-dev";
-    public boolean runEmulation = false;
     private boolean dontSleep = false;
     private boolean shutdown = false;
-    public long frameStartTime, framecount, frameDoneTime;
     private boolean frameLimiterOn = true;
     private String curRomPath, curRomName;
-    private final FrameLimiterInterface limiter = new FrameLimiterImpl(this, 16639267);
     // Pro Action Replay device
     private ActionReplay actionReplay;
 
@@ -75,12 +83,6 @@ public class NES {
             }
         }
     }
-    Runnable render = new Runnable() {
-        @Override
-        public void run() {
-            gui.render();
-        }
-    };
 
     private synchronized void runframe() {
         ppu.runFrame();
@@ -120,6 +122,65 @@ public class NES {
 
     public synchronized void loadROM(final String filename) {
         loadROM(filename, null);
+    }
+
+    public synchronized void loadROM(final URL fileURL) {
+        runEmulation = false;
+        if (FileUtils.getExtension(fileURL.getPath()).equalsIgnoreCase(".nes")
+                || FileUtils.getExtension(fileURL.getPath()).equalsIgnoreCase(".nsf")) {
+            Mapper newmapper;
+            try {
+                final ROMLoader loader = new ROMLoader(fileURL.openStream());
+                loader.parseHeader();
+                newmapper = Mapper.getCorrectMapper(loader);
+                newmapper.setLoader(loader);
+                newmapper.loadrom();
+            } catch (BadMapperException e) {
+                gui.messageBox("Error Loading File: ROM is"
+                        + " corrupted or uses an unsupported mapper.\n" + e.getMessage());
+                return;
+            } catch (Exception e) {
+                gui.messageBox("Error Loading File: ROM is"
+                        + " corrupted or uses an unsupported mapper.\n" + e.toString() + e.getMessage());
+                e.printStackTrace();
+                return;
+            }
+            if (apu != null) {
+                //if rom already running save its sram before closing
+                apu.destroy();
+                saveSRAM(false);
+                //also get rid of mapper etc.
+                mapper.destroy();
+                cpu = null;
+                cpuram = null;
+                ppu = null;
+            }
+            mapper = newmapper;
+            //now some annoying getting of all the references where they belong
+            cpuram = mapper.getCPURAM();
+            actionReplay = new ActionReplay(cpuram);
+            cpu = mapper.cpu;
+            ppu = mapper.ppu;
+            apu = new APU(this, cpu, cpuram);
+            cpuram.setAPU(apu);
+            cpuram.setPPU(ppu);
+            curRomPath = "";//filename;
+            curRomName = "";//FileUtils.getFilenamefromPath(fileURL.getPath());
+
+            framecount = 0;
+            //if savestate exists, load it
+            if (mapper.hasSRAM()) {
+                loadSRAM();
+            }
+            //and start emulation
+            cpu.init(null);
+            mapper.init();
+            setParameters();
+            runEmulation = true;
+        } else {
+            gui.messageBox("Could not load file:\nFile " + fileURL + "\n"
+                    + "does not exist or is not a valid NES game.");
+        }
     }
 
     public synchronized void loadROM(final String filename, Integer initialPC) {
